@@ -1,4 +1,8 @@
+import { useState } from "react";
+
 export default function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
     <>
       <style>{`@keyframes slideDown { from { transform: translateY(-100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }`}</style>
@@ -8,7 +12,34 @@ export default function Navbar() {
             Brightstream
           </div>
 
-          <nav className="flex w-full flex-wrap items-center justify-start gap-x-5 gap-y-2 sm:w-auto sm:justify-end sm:gap-8 md:gap-10">
+          <button
+            aria-controls="mobile-menu"
+            aria-expanded={isOpen}
+            aria-label="Toggle navigation menu"
+            className="flex h-10 w-10 items-center justify-center rounded-md border border-[#f8f6f1]/40 text-[#f8f6f1] md:hidden"
+            onClick={() => setIsOpen((prev) => !prev)}
+            type="button"
+          >
+            <span className="relative block h-4 w-5">
+              <span
+                className={`absolute left-0 top-0 h-[2px] w-5 bg-current transition-transform duration-300 ${
+                  isOpen ? "translate-y-[7px] rotate-45" : ""
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-[7px] h-[2px] w-5 bg-current transition-opacity duration-300 ${
+                  isOpen ? "opacity-0" : "opacity-100"
+                }`}
+              />
+              <span
+                className={`absolute left-0 top-[14px] h-[2px] w-5 bg-current transition-transform duration-300 ${
+                  isOpen ? "-translate-y-[7px] -rotate-45" : ""
+                }`}
+              />
+            </span>
+          </button>
+
+          <nav className="hidden flex-wrap items-center justify-end gap-8 md:flex md:gap-10">
             <a
               className="whitespace-nowrap font-['Jost',sans-serif] text-[0.90rem] font-[400] tracking-[0.5px] text-[#f8f6f1] no-underline"
               href="#"
@@ -41,6 +72,52 @@ export default function Navbar() {
             </a>
 
             <button className="ml-0 cursor-pointer whitespace-nowrap rounded-lg border-none bg-[#D4AF37] px-3 py-2 text-sm font-semibold text-[#111827] sm:px-4 sm:py-2.5 sm:text-base">
+              Get Started
+            </button>
+          </nav>
+
+          <nav
+            className={`${
+              isOpen ? "flex" : "hidden"
+            } w-full flex-col items-start gap-3 rounded-md bg-[rgba(10,22,40,0.92)] p-4 md:hidden`}
+            id="mobile-menu"
+          >
+            <a
+              className="whitespace-nowrap font-['Jost',sans-serif] text-[0.95rem] font-[400] tracking-[0.5px] text-[#f8f6f1] no-underline"
+              href="#"
+              onClick={() => setIsOpen(false)}
+            >
+              Personal
+            </a>
+            <a
+              className="whitespace-nowrap font-['Jost',sans-serif] text-[0.95rem] font-[400] tracking-[0.5px] text-[#f8f6f1] no-underline"
+              href="#"
+              onClick={() => setIsOpen(false)}
+            >
+              Business
+            </a>
+            <a
+              className="whitespace-nowrap font-['Jost',sans-serif] text-[0.95rem] font-[400] tracking-[0.5px] text-[#f8f6f1] no-underline"
+              href="#"
+              onClick={() => setIsOpen(false)}
+            >
+              Wealth
+            </a>
+            <a
+              className="whitespace-nowrap font-['Jost',sans-serif] text-[0.95rem] font-[400] tracking-[0.5px] text-[#f8f6f1] no-underline"
+              href="#"
+              onClick={() => setIsOpen(false)}
+            >
+              About
+            </a>
+            <a
+              className="whitespace-nowrap font-['Jost',sans-serif] text-[0.95rem] font-[400] tracking-[0.5px] text-[#f8f6f1] no-underline"
+              href="#"
+              onClick={() => setIsOpen(false)}
+            >
+              Articles
+            </a>
+            <button className="mt-2 cursor-pointer whitespace-nowrap rounded-lg border-none bg-[#D4AF37] px-3 py-2 text-sm font-semibold text-[#111827]">
               Get Started
             </button>
           </nav>

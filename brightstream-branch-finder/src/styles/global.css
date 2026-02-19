@@ -1,1 +1,111 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
+
+:root {
+  --midnight: #03173a;
+  --cream: #89a3c2;
+  --line: #1e365b;
+}
+
+.site-footer {
+  width: 100%;
+  background: var(--midnight);
+  color: var(--cream);
+  padding: 2.4rem 5% 1.4rem;
+}
+
+.footer-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.6rem;
+}
+
+.footer-brand h3 {
+  font-family: 'Playfair Display', serif;
+  color: #ffffff;
+  font-size: clamp(1.9rem, 1.8vw, 2.4rem);
+  line-height: 1.2;
+}
+
+.footer-brand p {
+  margin-top: 0.8rem;
+  max-width: 40ch;
+  font-family: 'Jost', sans-serif;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.footer-section h4 {
+  font-family: 'Playfair Display', serif;
+  color: #ffffff;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+
+.footer-links {
+  list-style: none;
+  margin-top: 0.8rem;
+}
+
+.footer-links li + li {
+  margin-top: 0.58rem;
+}
+
+.footer-links a,
+.social-links a {
+  color: var(--cream);
+  text-decoration: none;
+  font-family: 'Jost', sans-serif;
+  font-size: 1rem;
+  transition: color 0.2s ease;
+}
+
+.footer-links a:hover,
+.social-links a:hover {
+  color: #ffffff;
+}
+
+.footer-bottom {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding-top: 1rem;
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.95rem;
+}
+
+.social-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.15rem;
+}
+
+@media (max-width: 1024px) {
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 700px) {
+  .site-footer {
+    padding: 1.35rem 5% 0.95rem;
+  }
+
+  .footer-content {
+    grid-template-columns: 1fr;
+    padding-bottom: 1rem;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 0.8rem;
+  }
+}
