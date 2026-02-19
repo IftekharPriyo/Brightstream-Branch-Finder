@@ -201,11 +201,24 @@ export default function BranchMap(props: {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!mapRef.current) return;
+
+    const onResize = () => {
+      mapRef.current?.invalidateSize?.();
+    };
+
+    window.addEventListener("resize", onResize);
+    onResize();
+    return () => window.removeEventListener("resize", onResize);
+  }, [branches.length]);
+
   return (
     <div
       ref={mapDivRef}
       style={{
-        height: 500,
+        height: "clamp(300px, 55vh, 500px)",
         width: "100%",
         borderRadius: 12,
         overflow: "hidden",

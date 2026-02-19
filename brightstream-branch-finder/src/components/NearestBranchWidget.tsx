@@ -279,30 +279,66 @@ export default function NearestBranchWidget() {
     return null;
   }, [mode, cityCenter, nearestBranch, userLoc, parsedBranches]);
 
+  const shouldShowMap =
+    !!mapCenter &&
+    ((mode === "nearest" && !!userLoc && parsedBranches.length > 0) ||
+      (mode === "city" && cityBranches.length > 0));
+
   function googleMapsDirectionsLink(lat: number, lon: number) {
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
   }
 
   return (
     <div style={{ width: "100%", margin: "0 auto" }}>
-      <div
-        style={{
-          display: "flex",
-          gap: 20,
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ flex: "1.4 1 420px", minWidth: 360 }}>
+      <style>{`
+        .nbw-layout {
+          display: grid;
+          gap: clamp(1rem, 3vw, 1.75rem);
+          align-items: start;
+          grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1.1fr);
+          grid-template-areas:
+            "top map"
+            "city map";
+        }
+        .nbw-top {
+          grid-area: top;
+          min-width: 0;
+        }
+        .nbw-city {
+          grid-area: city;
+          min-width: 0;
+        }
+        .nbw-map {
+          grid-area: map;
+          min-width: 0;
+        }
+        .nbw-map-placeholder {
+          min-height: 1px;
+        }
+        @media (max-width: 1024px) {
+          .nbw-layout {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+              "top"
+              "map"
+              "city";
+          }
+          .nbw-map-placeholder {
+            display: none;
+          }
+        }
+      `}</style>
+      <div className="nbw-layout">
+        <div className="nbw-top">
           <h1
             style={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: "clamp(3rem, 7vw, 4rem)",
+              fontSize: "clamp(2rem, 8vw, 4rem)",
               fontWeight: 700,
               color: "#0A1628",
               lineHeight: 1.1,
-              marginBottom: "1.5rem",
-              letterSpacing: "-2px",
+              marginBottom: "1rem",
+              letterSpacing: "-1px",
             }}
           >
             Brighstream Branch Finder
@@ -335,7 +371,7 @@ export default function NearestBranchWidget() {
                   color: "#FEFDFB",
                   cursor: "pointer",
                   fontSize: 16,
-                  width: 240,
+                  width: "min(100%, 240px)",
                   border: "none",
                   height: 46,
                 }}
@@ -400,6 +436,9 @@ export default function NearestBranchWidget() {
             </div>
           )}
 
+        </div>
+
+        <div className="nbw-city">
           {/* City dropdown + Button 2 */}
           <p
             style={{
@@ -421,7 +460,7 @@ export default function NearestBranchWidget() {
               marginTop: mode === "nearest" ? 30 : 18,
             }}
           >
-            <div style={{ width: "20rem" }}>
+            <div style={{ width: "min(100%, 20rem)", flexGrow: 1 }}>
               <CitySelect
                 cities={cities}
                 value={cityQuery}
@@ -445,7 +484,7 @@ export default function NearestBranchWidget() {
                 color: "#FEFDFB",
                 cursor: "pointer",
                 fontSize: 16,
-                width: 200,
+                width: "min(100%, 200px)",
                 border: "none",
                 height: 46,
               }}
@@ -476,23 +515,32 @@ export default function NearestBranchWidget() {
         {/* Map */}
 
         {/* Map */}
-        {mapCenter &&
-          ((mode === "nearest" && userLoc && parsedBranches.length > 0) ||
-            (mode === "city" && cityBranches.length > 0)) && (
-            <div style={{ flex: "1.1 1 420px", minWidth: 320 }}>
-              <BranchMap
-                centerLat={mapCenter.lat}
-                centerLon={mapCenter.lon}
-                zoom={mapCenter.zoom}
-                branches={mode === "city" ? cityBranches : parsedBranches}
-                highlightId={
-                  mode === "nearest" ? (nearestId ?? undefined) : undefined
-                }
-                userLat={mode === "nearest" ? userLoc?.lat : undefined}
-                userLon={mode === "nearest" ? userLoc?.lon : undefined}
-              />
-            </div>
-          )}
+        {shouldShowMap ? (
+          <div
+            className="nbw-map"
+            style={{ flex: "1.1 1 420px", minWidth: "min(100%, 320px)" }}
+          >
+            <BranchMap
+              centerLat={mapCenter.lat}
+              centerLon={mapCenter.lon}
+              zoom={mapCenter.zoom}
+              branches={mode === "city" ? cityBranches : parsedBranches}
+              highlightId={
+                mode === "nearest" ? (nearestId ?? undefined) : undefined
+              }
+              userLat={mode === "nearest" ? userLoc?.lat : undefined}
+              userLon={mode === "nearest" ? userLoc?.lon : undefined}
+            />
+          </div>
+        ) : (
+          <div
+            className="nbw-map nbw-map-placeholder"
+            style={{
+              flex: "1.1 1 420px",
+              minWidth: "min(100%, 320px)",
+            }}
+          />
+        )}
       </div>
     </div>
   );
