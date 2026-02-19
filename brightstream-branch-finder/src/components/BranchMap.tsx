@@ -6,6 +6,9 @@ export type MapBranch = {
   name: string;
   lat: number;
   lon: number;
+  phone: string;
+  city: string;
+  country: string;
 };
 
 export default function BranchMap(props: {
@@ -167,9 +170,14 @@ export default function BranchMap(props: {
         const marker = L.marker([b.lat, b.lon]);
         marker.bindPopup(
           `<div style="font-weight:700">${escapeHtml(label)}</div>
-           <div style="font-size:12px;opacity:.8">
-             ${b.lat.toFixed(5)}, ${b.lon.toFixed(5)}
-           </div>`,
+          <p style="color: #64748b; font-weight: 400;">
+                ${b.city}, ${b.country}
+              </p>
+            <p style="color: #64748b; font-weight: 400;">Call us at ${b.phone}</p>
+           <div style="font-size:12px;opacity:.8;margin-top:10px;">
+             <a href="https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lon}" target="_blank" rel="noreferrer">Get Directions</a>
+           </div>
+           `,
         );
 
         marker.addTo(clusterGroupRef.current);
