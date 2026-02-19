@@ -1,3 +1,4 @@
+// src/components/BranchMap.tsx
 import { useEffect, useRef } from "react";
 
 export type MapBranch = {
@@ -28,7 +29,11 @@ export default function BranchMap(props: {
 
   const mapDivRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
-  const layerGroupRef = useRef<any>(null);
+
+  // Separate layers: one for user marker, one clustered for branches
+  const userLayerRef = useRef<any>(null);
+  const clusterGroupRef = useRef<any>(null);
+
   const lastViewKeyRef = useRef<string>("");
 
   useEffect(() => {
@@ -39,6 +44,10 @@ export default function BranchMap(props: {
 
     (async () => {
       const L = (await import("leaflet")).default;
+
+      // Plugin patches Leaflet and adds L.markerClusterGroup()
+      await import("leaflet.markercluster");
+
       if (isCancelled) return;
 
       // Create map once
@@ -52,8 +61,6 @@ export default function BranchMap(props: {
           attribution: "&copy; OpenStreetMap contributors",
         }).addTo(mapRef.current);
 
-        layerGroupRef.current = L.layerGroup().addTo(mapRef.current);
-
         // Fix default marker icons (CDN URLs)
         // @ts-ignore
         delete L.Icon.Default.prototype._getIconUrl;
@@ -65,9 +72,22 @@ export default function BranchMap(props: {
           shadowUrl:
             "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
         });
+
+        // User layer (non-clustered)
+        userLayerRef.current = L.layerGroup().addTo(mapRef.current);
+
+        // Cluster group for branches
+        clusterGroupRef.current = (L as any).markerClusterGroup({
+          // Feel free to tweak these:
+          showCoverageOnHover: false,
+          spiderfyOnMaxZoom: true,
+          disableClusteringAtZoom: 16, // at street-level, show individual markers
+        });
+
+        mapRef.current.addLayer(clusterGroupRef.current);
       }
 
-      //  VIEW UPDATE: fitBounds(user+nearest) else flyTo center
+      // ✅ VIEW UPDATE: fitBounds(user+nearest) else flyTo center
       const hasUser =
         typeof userLat === "number" && typeof userLon === "number";
 
@@ -92,9 +112,7 @@ export default function BranchMap(props: {
           });
         }
       } else {
-        const viewKey = `center:${centerLat.toFixed(6)},${centerLon.toFixed(
-          6,
-        )},${zoom}`;
+        const viewKey = `center:${centerLat.toFixed(6)},${centerLon.toFixed(6)},${zoom}`;
         if (lastViewKeyRef.current !== viewKey) {
           lastViewKeyRef.current = viewKey;
 
@@ -111,10 +129,11 @@ export default function BranchMap(props: {
         }
       }
 
-      // Clear previous markers
-      if (layerGroupRef.current) layerGroupRef.current.clearLayers();
+      // Clear existing layers
+      if (userLayerRef.current) userLayerRef.current.clearLayers();
+      if (clusterGroupRef.current) clusterGroupRef.current.clearLayers();
 
-      //  USER LOCATION
+      // ✅ USER LOCATION — blue dot + soft ring (non-clustered)
       if (hasUser) {
         const userCircle = L.circleMarker([userLat!, userLon!], {
           radius: 8,
@@ -127,20 +146,20 @@ export default function BranchMap(props: {
         userCircle.bindPopup(
           `<div style="font-weight:700">📍 You are here</div>`,
         );
-        userCircle.addTo(layerGroupRef.current);
+        userCircle.addTo(userLayerRef.current);
 
         const accuracyRing = L.circle([userLat!, userLon!], {
-          radius: 500,
+          radius: 500, // meters (visual)
           color: "#3b82f6",
           fillColor: "#93c5fd",
           fillOpacity: 0.15,
           weight: 1,
         });
 
-        accuracyRing.addTo(layerGroupRef.current);
+        accuracyRing.addTo(userLayerRef.current);
       }
 
-      //  BRANCH MARKERS
+      // ✅ BRANCH MARKERS (clustered)
       for (const b of branches) {
         const isNearest = highlightId && b.id === highlightId;
         const label = isNearest ? `⭐ ${b.name}` : b.name;
@@ -152,7 +171,8 @@ export default function BranchMap(props: {
              ${b.lat.toFixed(5)}, ${b.lon.toFixed(5)}
            </div>`,
         );
-        marker.addTo(layerGroupRef.current);
+
+        marker.addTo(clusterGroupRef.current);
       }
     })();
 
@@ -167,7 +187,8 @@ export default function BranchMap(props: {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
-        layerGroupRef.current = null;
+        userLayerRef.current = null;
+        clusterGroupRef.current = null;
       }
     };
   }, []);
