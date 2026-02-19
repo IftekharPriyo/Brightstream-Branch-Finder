@@ -197,7 +197,7 @@ export default function BranchMap(props: {
     <div
       ref={mapDivRef}
       style={{
-        height: 420,
+        height: 500,
         width: "100%",
         borderRadius: 12,
         overflow: "hidden",

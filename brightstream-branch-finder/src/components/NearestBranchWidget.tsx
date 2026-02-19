@@ -1,3 +1,4 @@
+// src/components/NearestBranchWidget.tsx
 import { useMemo, useState } from "react";
 import BranchMap, { type MapBranch } from "./BranchMap";
 
@@ -6,6 +7,8 @@ type Branch = {
   Name?: string | null;
   Coordinates?: string | null;
   Country?: string | null;
+  City?: string | null;
+  Phone?: string | null;
 };
 
 type UserLoc = { lat: number; lon: number };
@@ -64,12 +67,13 @@ async function fetchBranchesCached(): Promise<Branch[]> {
   const res = await fetch("/api/graph", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ limit: 100, skip: 0 }), // server clamps anyway
+    body: JSON.stringify({ limit: 100, skip: 0 }),
   });
 
   const json = await res.json();
-  if (json.errors?.length)
+  if (json.errors?.length) {
     throw new Error(json.errors[0].message ?? "GraphQL error");
+  }
 
   const items: Branch[] = json?.data?.Branch?.items ?? [];
   localStorage.setItem(
@@ -88,16 +92,24 @@ export default function NearestBranchWidget() {
 
   const parsedBranches = useMemo(() => {
     if (!branches) return [];
-    const out: (MapBranch & { country?: string | null })[] = [];
+    const out: (MapBranch & {
+      country?: string | null;
+      city?: string | null;
+      phone?: string | null;
+    })[] = [];
+
     for (const b of branches) {
       const c = parseCoordinates(b.Coordinates);
       if (!c) continue;
+
       out.push({
         id: b._id,
         name: b.Name ?? "Unnamed branch",
         lat: c.lat,
         lon: c.lon,
         country: b.Country ?? null,
+        city: b.City ?? null,
+        phone: b.Phone ?? null,
       });
     }
     return out;
@@ -110,18 +122,18 @@ export default function NearestBranchWidget() {
 
   const handleClick = async () => {
     try {
-      setStatus("Requesting location permission…");
+      setStatus("Requesting location permission...");
       setNearestId(null);
       setNearestDistance(null);
 
       const loc = await getUserLocation();
       setUserLoc(loc);
 
-      setStatus("Loading branches…");
+      setStatus("Loading branches...");
       const items = await fetchBranchesCached();
       setBranches(items);
 
-      setStatus("Calculating nearest branch…");
+      setStatus("Calculating nearest branch...");
 
       let bestId: string | null = null;
       let bestD = Infinity;
@@ -129,6 +141,7 @@ export default function NearestBranchWidget() {
       for (const b of items) {
         const c = parseCoordinates(b.Coordinates);
         if (!c) continue;
+
         const d = haversineKm(loc.lat, loc.lon, c.lat, c.lon);
         if (d < bestD) {
           bestD = d;
@@ -143,71 +156,156 @@ export default function NearestBranchWidget() {
 
       setNearestId(bestId);
       setNearestDistance(bestD);
-      setStatus("Done ✅");
+      setStatus("Done");
     } catch (e: any) {
       setStatus(`Error: ${e?.message ?? "Unknown error"}`);
     }
   };
 
-  // Map branches: show nearest
   const mapBranches = parsedBranches;
 
   return (
-    <div style={{ display: "grid", gap: 14, maxWidth: 900 }}>
-      <button
-        onClick={handleClick}
+    <div style={{ width: "100%", margin: "0 auto" }}>
+      <div
         style={{
-          padding: "12px 16px",
-          borderRadius: 10,
-          border: "1px solid #ccc",
-          cursor: "pointer",
-          fontSize: 16,
-          width: 240,
+          display: "flex",
+          gap: 20,
+          alignItems: "flex-start",
+          flexWrap: "wrap",
         }}
       >
-        Find Nearest Branch
-      </button>
+        <div style={{ flex: "1.4 1 420px", minWidth: 360 }}>
+          <h1
+            style={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: "clamp(3rem, 7vw, 4rem)",
+              fontWeight: 700,
+              color: "#0A1628",
+              lineHeight: 1.1,
+              marginBottom: "1.5rem",
+              letterSpacing: "-2px",
+            }}
+          >
+            Brighstream Branch Finder
+          </h1>
 
-      <div>
-        <strong>Status:</strong> {status}
+          {nearestBranch && nearestDistance != null ? (
+            <></>
+          ) : (
+            <>
+              <p
+                style={{
+                  marginTop: 6,
+                  color: "#64748b",
+                  lineHeight: 1.8,
+                  fontWeight: 600,
+                  marginBottom: 30,
+                }}
+              >
+                We'll show you the closest branch along with a map of all our
+                locations.
+              </p>
+
+              <button
+                onClick={handleClick}
+                style={{
+                  padding: "12px 16px",
+                  borderRadius: 20,
+                  backgroundColor: "#D4AF37",
+                  color: "#0a1628",
+                  cursor: "pointer",
+                  fontSize: 16,
+                  width: 240,
+                  border: "none",
+                }}
+              >
+                Find Nearest Branch
+              </button>
+            </>
+          )}
+
+          {nearestBranch && nearestDistance != null && (
+            <div style={{ marginTop: 30, padding: 14 }}>
+              <div
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: "1.8rem",
+                  fontWeight: 600,
+                  color: "#8b9d83",
+                  margin: 0,
+                }}
+              >
+                The nearest branch is at
+              </div>
+              <h3
+                style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: "2rem",
+                  fontWeight: 600,
+                  color: "#0A1628",
+                  marginTop: 10,
+                }}
+              >
+                {nearestBranch.name}
+              </h3>
+
+              <p
+                style={{
+                  // marginTop: 2,
+                  color: "#64748b",
+                  lineHeight: 1.8,
+                  fontWeight: 400,
+                }}
+              >
+                {nearestBranch.city}, {nearestBranch.country} ·{" "}
+                {nearestDistance.toFixed(2)} km
+              </p>
+              <p
+                style={{
+                  // marginTop: 2,
+                  color: "#64748b",
+                  lineHeight: 1.8,
+                  fontWeight: 400,
+                }}
+              >
+                Call us : {nearestBranch.phone}
+              </p>
+
+              {/* ✅ Single distance line */}
+              {/* <p
+                style={{
+                  marginTop: 6,
+                  color: "#64748b",
+                  lineHeight: 1.8,
+                  fontWeight: 400,
+                }}
+              >
+                <strong>Distance:</strong> {nearestDistance.toFixed(2)} km
+              </p> */}
+            </div>
+          )}
+
+          {/* Optional debug:
+          <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+            {status}
+          </div>
+          */}
+        </div>
+
+        {userLoc && mapBranches.length > 0 && (
+          <div style={{ flex: "1.1 1 420px", minWidth: 320 }}>
+            <BranchMap
+              centerLat={nearestBranch?.lat ?? userLoc.lat}
+              centerLon={nearestBranch?.lon ?? userLoc.lon}
+              zoom={nearestBranch ? 13 : 6}
+              branches={mapBranches}
+              highlightId={nearestId ?? undefined}
+              userLat={userLoc.lat}
+              userLon={userLoc.lon}
+            />
+          </div>
+        )}
       </div>
-
-      {nearestBranch && nearestDistance != null && (
-        <div
-          style={{ padding: 14, border: "1px solid #ddd", borderRadius: 12 }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 700 }}>
-            {nearestBranch.name}
-          </div>
-          <div style={{ marginTop: 6 }}>
-            <strong>Distance:</strong> {nearestDistance.toFixed(2)} km
-          </div>
-          <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>
-            {nearestBranch.lat.toFixed(5)}, {nearestBranch.lon.toFixed(5)}
-          </div>
-        </div>
-      )}
-
-      {/* Render map after we have user loc and branches */}
-      {userLoc && mapBranches.length > 0 && (
-        <BranchMap
-          centerLat={nearestBranch?.lat ?? userLoc.lat}
-          centerLon={nearestBranch?.lon ?? userLoc.lon}
-          zoom={nearestBranch ? 13 : 6}
-          branches={mapBranches}
-          highlightId={nearestId ?? undefined}
-          // ✅ add these:
-          userLat={userLoc.lat}
-          userLon={userLoc.lon}
-        />
-      )}
-
-      {branches && (
-        <div style={{ fontSize: 12, opacity: 0.75 }}>
-          Loaded branches: {branches.length} | With valid coords:{" "}
-          {parsedBranches.length}
-        </div>
-      )}
     </div>
   );
 }
