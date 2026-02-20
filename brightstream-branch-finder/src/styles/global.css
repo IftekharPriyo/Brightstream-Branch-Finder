@@ -266,13 +266,17 @@ body {
   display: inline-block;
   border: none;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 15px 50px rgba(212, 175, 55, 0.4);
+  filter: brightness(0.98);
 }
 
 .nbw-action-btn:hover {
   transform: translateY(-3px);
-  box-shadow: 0 15px 50px rgba(212, 175, 55, 0.4);
-  filter: brightness(0.98);
+  box-shadow: 0 20px 60px rgba(212, 175, 55, 0.55);
+  filter: brightness(1.02);
 }
+
+
 
 .nbw-action-btn:focus-visible {
   outline: 2px solid #0a1628;
@@ -366,6 +370,9 @@ body {
     display: none;
   }
 }
+
+
+
 
 
 
