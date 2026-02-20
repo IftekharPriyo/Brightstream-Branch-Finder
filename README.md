@@ -27,17 +27,31 @@ In both flows, users get an interactive map view and quick access to Google Maps
 ## Project Structure
 
 ```text
-brightstream-branch-finder/
-|- src/components/NearestBranchWidget/
-|  |- NearestBranchWidget.tsx
-|  |- CitySearchSection.tsx
-|  |- CitySelect.tsx
-|  |- NearestResult.tsx
-|  `- nearestBranchWidget.helpers.ts
-|- src/components/BranchMap/BranchMap.tsx
-`- src/pages/
+Brightstream-Branch-Finder/
+|- README.md
+`- brightstream-branch-finder/
+   |- public/
+   |- src/
+   |  |- components/
+   |  |  |- BranchMap/BranchMap.tsx
+   |  |  |- NearestBranchWidget/
+   |  |  |  |- NearestBranchWidget.tsx
+   |  |  |  |- CitySearchSection.tsx
+   |  |  |  |- CitySelect.tsx
+   |  |  |  |- NearestResult.tsx
+   |  |  |  `- nearestBranchWidget.helpers.ts
+   |  |  |- NavBar/
+   |  |  `- Footer/
+   |  |- pages/
+   |  |  |- index.astro
+   |  |  `- api/graph.ts
+   |  `- styles/
+   |- .env
+   |- .env.local
+   |- astro.config.mjs
+   |- package.json
+   `- tsconfig.json
 ```
-
 ## Run Locally
 
 ```bash
@@ -126,3 +140,4 @@ This module is designed as a feature component that can be embedded into a large
 - Because direct latitude/longitude fields were not consistently available in fetched data, the module parses and extracts `lat`/`lon` values from the `Coordinates` field.
 - Distance calculations and nearest-branch logic are based on these parsed coordinate values.
 - Because server-side where filtering was not reliably available, the module fetches up to 100 branch records, caches them in localStorage, and performs city filtering client-side.
+
