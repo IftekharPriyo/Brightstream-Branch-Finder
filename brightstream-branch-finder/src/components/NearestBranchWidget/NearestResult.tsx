@@ -22,7 +22,7 @@ export default function NearestResult(props: NearestResultProps) {
 
       <p className="nbw-nearest-meta">
         {nearestBranch.city}, {nearestBranch.country} -{" "}
-        {nearestDistance.toFixed(2)} km
+        {nearestDistance.toFixed(2)} km away
       </p>
 
       {nearestBranch.phone && (
@@ -35,7 +35,7 @@ export default function NearestResult(props: NearestResultProps) {
         rel="noreferrer"
         className="nbw-map-link"
       >
-        Open in Google Maps
+        Get Directions in Google Maps
       </a>
     </div>
   );
