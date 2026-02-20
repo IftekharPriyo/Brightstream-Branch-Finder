@@ -377,6 +377,7 @@ body {
 .nav-cta-btn:hover {
   background-color: var(--warm-white);
   color: var(--slate);
-  box-shadow: 0 10px 18px -8px rgba(212, 175, 55, 0.35);
+  box-shadow: 0 14px 30px -10px rgba(212, 175, 55, 0.55);
 }
+
 
