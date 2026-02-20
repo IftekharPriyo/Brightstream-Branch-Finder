@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import BranchMap from "./BranchMap";
+import BranchMap from "../BranchMap/BranchMap";
 import CitySearchSection from "./CitySearchSection";
 import IntroSection from "./IntroSection";
-import NearestResult, { type WidgetBranch } from "./NearestResult";
+
 import {
   fetchBranchesCached,
   getUserLocation,
@@ -12,6 +12,8 @@ import {
   type Branch,
   type UserLoc,
 } from "./nearestBranchWidget.helpers";
+import type { WidgetBranch } from "./NearestResult";
+import NearestResult from "./NearestResult";
 
 export default function NearestBranchWidget() {
   const [userLoc, setUserLoc] = useState<UserLoc | null>(null);

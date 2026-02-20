@@ -55,7 +55,7 @@ export default function BranchMap(props: {
 
       // Create map once
       if (!mapRef.current) {
-        mapRef.current = L.map(mapDivRef.current).setView(
+        mapRef.current = L.map(mapDivRef.current!).setView(
           [centerLat, centerLon],
           zoom,
         );
