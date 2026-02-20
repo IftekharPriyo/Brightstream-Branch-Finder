@@ -202,17 +202,18 @@ body {
   font-family: "Playfair Display", serif;
   font-size: clamp(2rem, 8vw, 4rem);
   font-weight: 700;
-  color: #0a1628;
-  line-height: 1.1;
-  margin-bottom: 1rem;
+  color: var(--midnight);
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
   letter-spacing: -1px;
 }
 
 .nbw-intro-text,
 .nbw-city-text {
   color: #64748b;
+  font-size: 1.15rem;
   line-height: 1.8;
-  font-weight: 600;
+  font-weight: 300;
   margin-bottom: 18px;
 }
 
