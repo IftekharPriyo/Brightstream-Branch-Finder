@@ -80,7 +80,6 @@ export default function BranchMap(props: {
 
         // Cluster group for branches
         clusterGroupRef.current = (L as any).markerClusterGroup({
-          // Feel free to tweak these:
           showCoverageOnHover: false,
           spiderfyOnMaxZoom: true,
           disableClusteringAtZoom: 16, // at street-level, show individual markers
