@@ -38,7 +38,7 @@ body {
 }
 
 .ease-up {
-  animation: easeUp 0.55s ease-out both;
+  animation: easeUp 0.55s ease-out;
   will-change: transform, opacity;
 }
 
@@ -83,15 +83,16 @@ body {
   width: 100%;
   background: #0a1628;
   color: var(--cream);
-  padding: 3rem 5% 1.4rem;
+  padding: 5rem 5% 2rem;
 }
 
 .footer-content {
   max-width: 1400px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr));
-  gap: 2rem;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 4rem;
+  margin-bottom: 3rem;
   border-bottom: 1px solid var(--line);
   padding-bottom: 1.6rem;
 }
@@ -252,18 +253,24 @@ body {
 }
 
 .nbw-action-btn {
-  padding: 12px 16px;
-  border-radius: 360px;
+  padding: 1rem 2.5rem;
+  border-radius: 50px;
   background-color: #d4af37;
-  color: #fefdfb;
+  color: var(--midnight);
   cursor: pointer;
-  font-size: 16px;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-decoration: none;
+  display: inline-block;
   border: none;
-  height: 46px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nbw-action-btn:hover {
-  filter: brightness(0.96);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 50px rgba(212, 175, 55, 0.4);
+  filter: brightness(0.98);
 }
 
 .nbw-action-btn:focus-visible {

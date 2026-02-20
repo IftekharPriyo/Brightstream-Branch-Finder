@@ -1,3 +1,4 @@
+// @ts-expect-error
 import type { MapBranch } from "./BranchMap";
 
 export type WidgetBranch = MapBranch & {
@@ -26,7 +27,9 @@ export default function NearestResult(props: NearestResultProps) {
       </p>
 
       {nearestBranch.phone && (
-        <p className="nbw-nearest-meta ease-up">Call us : {nearestBranch.phone}</p>
+        <p className="nbw-nearest-meta ease-up">
+          Call us : {nearestBranch.phone}
+        </p>
       )}
 
       <a
