@@ -116,7 +116,6 @@ export default function NearestBranchWidget() {
       setMode("nearest");
       setNearestId(null);
       setNearestDistance(null);
-      // Keep cityQuery as-is; it just won't be used in this mode
 
       const loc = await getUserLocation();
       setUserLoc(loc);
@@ -150,7 +149,7 @@ export default function NearestBranchWidget() {
     }
   };
 
-  // Mode A: show all branches in selected city on the map
+  // show all branches in selected city on the map
   const handleSearchCity = async () => {
     try {
       setMode("city");

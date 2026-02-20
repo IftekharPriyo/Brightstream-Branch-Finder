@@ -1,4 +1,3 @@
-// src/components/nearestBranchWidget.helpers.ts
 
 export type Branch = {
   _id: string;
@@ -23,6 +22,8 @@ export function parseCoordinates(
   return { lat, lon };
 }
 
+
+// calculate shortest distance between 2 coordinates in km using Haversine formula
 export function haversineKm(
   lat1: number,
   lon1: number,
@@ -35,8 +36,8 @@ export function haversineKm(
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) ** 2;
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -64,7 +65,7 @@ export async function fetchBranchesCached(): Promise<Branch[]> {
       ) {
         return cached.items;
       }
-    } catch {}
+    } catch { }
   }
 
   const res = await fetch("/api/graph", {
