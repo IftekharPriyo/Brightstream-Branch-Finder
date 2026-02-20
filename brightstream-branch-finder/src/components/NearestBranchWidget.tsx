@@ -1,96 +1,19 @@
-// src/components/NearestBranchWidget.tsx
 import { useEffect, useMemo, useState } from "react";
-import BranchMap, { type MapBranch } from "./BranchMap";
-import CitySelect from "./CitySelect";
-
-type Branch = {
-  _id: string;
-  Name?: string | null;
-  Coordinates?: string | null;
-  Country?: string | null;
-  City?: string | null;
-  Phone?: string | null;
-};
-
-type UserLoc = { lat: number; lon: number };
-
-function parseCoordinates(
-  value?: string | null,
-): { lat: number; lon: number } | null {
-  if (!value) return null;
-  const parts = value.split(",").map((p) => Number(p.trim()));
-  if (parts.length !== 2) return null;
-  const [lat, lon] = parts;
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
-  return { lat, lon };
-}
-
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-async function getUserLocation(): Promise<UserLoc> {
-  return new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      reject,
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
-  });
-}
-
-// ✅ bump version so cached items include City/Phone
-const BRANCH_CACHE_KEY = "branches_cache_v2";
-const BRANCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
-
-async function fetchBranchesCached(): Promise<Branch[]> {
-  const raw = localStorage.getItem(BRANCH_CACHE_KEY);
-  if (raw) {
-    try {
-      const cached = JSON.parse(raw) as { ts: number; items: Branch[] };
-      if (
-        Date.now() - cached.ts < BRANCH_CACHE_TTL_MS &&
-        Array.isArray(cached.items)
-      ) {
-        return cached.items;
-      }
-    } catch {}
-  }
-
-  const res = await fetch("/api/graph", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ limit: 100, skip: 0 }),
-  });
-
-  const json = await res.json();
-  if (json.errors?.length) {
-    throw new Error(json.errors[0].message ?? "GraphQL error");
-  }
-
-  const items: Branch[] = json?.data?.Branch?.items ?? [];
-  localStorage.setItem(
-    BRANCH_CACHE_KEY,
-    JSON.stringify({ ts: Date.now(), items }),
-  );
-  return items;
-}
-
-function norm(s: unknown) {
-  return (typeof s === "string" ? s : "").trim().toLowerCase();
-}
+import BranchMap from "./BranchMap";
+import CitySearchSection from "./CitySearchSection";
+import IntroSection from "./IntroSection";
+import NearestResult, { type WidgetBranch } from "./NearestResult";
+import {
+  fetchBranchesCached,
+  getUserLocation,
+  haversineKm,
+  norm,
+  parseCoordinates,
+  type Branch,
+  type UserLoc,
+} from "./nearestBranchWidget.helpers";
 
 export default function NearestBranchWidget() {
-  const [status, setStatus] = useState("Idle");
   const [userLoc, setUserLoc] = useState<UserLoc | null>(null);
   const [branches, setBranches] = useState<Branch[] | null>(null);
 
@@ -136,11 +59,7 @@ export default function NearestBranchWidget() {
 
   const parsedBranches = useMemo(() => {
     if (!branches) return [];
-    const out: (MapBranch & {
-      country?: string | null;
-      city?: string | null;
-      phone?: string | null;
-    })[] = [];
+    const out: WidgetBranch[] = [];
 
     for (const b of branches) {
       const c = parseCoordinates(b.Coordinates);
@@ -164,7 +83,7 @@ export default function NearestBranchWidget() {
     return parsedBranches.find((b) => b.id === nearestId) ?? null;
   }, [nearestId, parsedBranches]);
 
-  // ✅ City-mode filtered branches (Mode A)
+  // City-mode filtered branches (Mode A)
   const cityBranches = useMemo(() => {
     if (!parsedBranches.length) return [];
     const wanted = norm(cityQuery);
@@ -172,7 +91,7 @@ export default function NearestBranchWidget() {
     return parsedBranches.filter((b) => norm(b.city ?? "") === wanted);
   }, [parsedBranches, cityQuery]);
 
-  // ✅ For city mode: compute a simple center (centroid) of the filtered results
+  // For city mode: compute a simple center (centroid) of the filtered results
   const cityCenter = useMemo(() => {
     if (cityBranches.length === 0) return null;
     let sumLat = 0;
@@ -187,22 +106,21 @@ export default function NearestBranchWidget() {
     };
   }, [cityBranches]);
 
+  const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Unknown error";
+
   const handleFindNearest = async () => {
     try {
       setMode("nearest");
-      setStatus("Requesting location permission...");
       setNearestId(null);
       setNearestDistance(null);
-      // Keep cityQuery as-is; it just won’t be used in this mode
+      // Keep cityQuery as-is; it just won't be used in this mode
 
       const loc = await getUserLocation();
       setUserLoc(loc);
 
-      setStatus("Loading branches...");
       const items = branches ?? (await fetchBranchesCached());
       setBranches(items);
-
-      setStatus("Calculating nearest branch...");
 
       let bestId: string | null = null;
       let bestD = Infinity;
@@ -219,23 +137,21 @@ export default function NearestBranchWidget() {
       }
 
       if (!bestId) {
-        setStatus("No branches found with valid coordinates.");
+        console.warn("No branches found with valid coordinates.");
         return;
       }
 
       setNearestId(bestId);
       setNearestDistance(bestD);
-      setStatus("Done");
-    } catch (e: any) {
-      setStatus(`Error: ${e?.message ?? "Unknown error"}`);
+    } catch (error: unknown) {
+      console.error(`Find nearest failed: ${getErrorMessage(error)}`);
     }
   };
 
-  // ✅ Mode A: show all branches in selected city on the map
+  // Mode A: show all branches in selected city on the map
   const handleSearchCity = async () => {
     try {
       setMode("city");
-      setStatus("Searching city...");
       setUserLoc(null); // no GPS marker in city mode
       setNearestId(null);
       setNearestDistance(null);
@@ -245,27 +161,19 @@ export default function NearestBranchWidget() {
 
       const wanted = norm(cityQuery);
       if (!wanted) {
-        setStatus("Please select a city.");
+        console.warn("Please select a city.");
         return;
       }
 
       const count = items.filter((b) => norm(b.City ?? "") === wanted).length;
       if (count === 0) {
-        setStatus("No branches found for that city.");
+        console.warn("No branches found for that city.");
         return;
       }
-
-      setStatus("Done");
-    } catch (e: any) {
-      setStatus(`Error: ${e?.message ?? "Unknown error"}`);
+    } catch (error: unknown) {
+      console.error(`City search failed: ${getErrorMessage(error)}`);
     }
   };
-
-  // What to render on the map
-  const mapBranches = useMemo(() => {
-    if (mode === "city") return cityBranches;
-    return parsedBranches; // nearest mode shows all branches (you can change to only nearby later)
-  }, [mode, cityBranches, parsedBranches]);
 
   // Where to center the map
   const mapCenter = useMemo(() => {
@@ -277,249 +185,48 @@ export default function NearestBranchWidget() {
       return { lat: userLoc.lat, lon: userLoc.lon, zoom: 6 };
 
     return null;
-  }, [mode, cityCenter, nearestBranch, userLoc, parsedBranches]);
+  }, [mode, cityCenter, nearestBranch, userLoc]);
 
   const shouldShowMap =
     !!mapCenter &&
     ((mode === "nearest" && !!userLoc && parsedBranches.length > 0) ||
       (mode === "city" && cityBranches.length > 0));
 
-  function googleMapsDirectionsLink(lat: number, lon: number) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
-  }
-
   return (
-    <div style={{ width: "100%", margin: "0 auto" }}>
-      <style>{`
-        .nbw-layout {
-          display: grid;
-          gap: clamp(1rem, 3vw, 1.75rem);
-          align-items: start;
-          grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1.1fr);
-          grid-template-areas:
-            "top map"
-            "city map";
-        }
-        .nbw-top {
-          grid-area: top;
-          min-width: 0;
-        }
-        .nbw-city {
-          grid-area: city;
-          min-width: 0;
-        }
-        .nbw-map {
-          grid-area: map;
-          min-width: 0;
-        }
-        .nbw-map-placeholder {
-          min-height: 1px;
-        }
-        @media (max-width: 1024px) {
-          .nbw-layout {
-            grid-template-columns: 1fr;
-            grid-template-areas:
-              "top"
-              "map"
-              "city";
-          }
-          .nbw-map-placeholder {
-            display: none;
-          }
-        }
-      `}</style>
+    <div className="nbw-root">
       <div className="nbw-layout">
         <div className="nbw-top">
-          <h1
-            style={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: "clamp(2rem, 8vw, 4rem)",
-              fontWeight: 700,
-              color: "#0A1628",
-              lineHeight: 1.1,
-              marginBottom: "1rem",
-              letterSpacing: "-1px",
-            }}
-          >
-            Brighstream Branch Finder
-          </h1>
+          <h1 className="nbw-title">Brighstream Branch Finder</h1>
 
           {/* Intro */}
           {!(
             mode === "nearest" &&
             nearestBranch &&
             nearestDistance != null
-          ) && (
-            <>
-              <p
-                style={{
-                  marginTop: 6,
-                  color: "#64748b",
-                  lineHeight: 1.8,
-                  fontWeight: 600,
-                  marginBottom: 18,
-                }}
-              >
-                Find the nearest branch using GPS, or search branches by city.
-              </p>
-              <button
-                onClick={handleFindNearest}
-                style={{
-                  padding: "12px 16px",
-                  borderRadius: 20,
-                  backgroundColor: "#D4AF37",
-                  color: "#FEFDFB",
-                  cursor: "pointer",
-                  fontSize: 16,
-                  width: "min(100%, 240px)",
-                  border: "none",
-                  height: 46,
-                }}
-              >
-                Find Nearest Branch
-              </button>
-            </>
-          )}
+          ) && <IntroSection onFindNearest={handleFindNearest} />}
 
           {mode === "nearest" && nearestBranch && nearestDistance != null && (
-            <div style={{ marginTop: 30, padding: 14 }}>
-              <div
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: "1.8rem",
-                  fontWeight: 600,
-                  color: "#8b9d83",
-                  margin: 0,
-                }}
-              >
-                The nearest branch is at
-              </div>
-
-              <h3
-                style={{
-                  fontFamily: "'Playfair Display', serif",
-                  fontSize: "2rem",
-                  fontWeight: 600,
-                  color: "#0A1628",
-                  marginTop: 10,
-                }}
-              >
-                {nearestBranch.name}
-              </h3>
-
-              <p style={{ color: "#64748b", lineHeight: 1.8, fontWeight: 400 }}>
-                {nearestBranch.city}, {nearestBranch.country} ·{" "}
-                {nearestDistance.toFixed(2)} km
-              </p>
-
-              {nearestBranch.phone && (
-                <p
-                  style={{ color: "#64748b", lineHeight: 1.8, fontWeight: 400 }}
-                >
-                  Call us : {nearestBranch.phone}
-                </p>
-              )}
-              <a
-                href={`https://www.google.com/maps/dir/?api=1&destination=${nearestBranch.lat},${nearestBranch.lon}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: "inline-block",
-                  marginTop: 10,
-                  color: "#0A1628",
-                  textDecoration: "underline",
-                  fontWeight: 600,
-                }}
-              >
-                Open in Google Maps →
-              </a>
-            </div>
+            <NearestResult
+              nearestBranch={nearestBranch}
+              nearestDistance={nearestDistance}
+            />
           )}
-
         </div>
 
-        <div className="nbw-city">
-          {/* City dropdown + Button 2 */}
-          <p
-            style={{
-              marginTop: 30,
-              color: "#64748b",
-              lineHeight: 1.8,
-              fontWeight: 600,
-              marginBottom: 18,
-            }}
-          >
-            Or search branches by city.
-          </p>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              flexWrap: "wrap",
-              alignItems: "flex-start",
-              marginTop: mode === "nearest" ? 30 : 18,
-            }}
-          >
-            <div style={{ width: "min(100%, 20rem)", flexGrow: 1 }}>
-              <CitySelect
-                cities={cities}
-                value={cityQuery}
-                onChange={setCityQuery}
-                placeholder="Search by city"
-                disabled={cities.length === 0}
-              />
-              <div style={{ marginTop: 6, fontSize: 12, color: "#94a3b8" }}>
-                {cities.length > 0
-                  ? `Suggestions loaded (${cities.length})`
-                  : "Loading city suggestions…"}
-              </div>
-            </div>
-
-            <button
-              onClick={handleSearchCity}
-              style={{
-                padding: "12px 16px",
-                borderRadius: 20,
-                backgroundColor: "#D4AF37",
-                color: "#FEFDFB",
-                cursor: "pointer",
-                fontSize: 16,
-                width: "min(100%, 200px)",
-                border: "none",
-                height: 46,
-              }}
-            >
-              Search City
-            </button>
-          </div>
-
-          {/* Results */}
-
-          {mode === "city" && (
-            <div style={{ marginTop: 18, color: "#64748b", lineHeight: 1.7 }}>
-              {cityQuery.trim() ? (
-                <>
-                  Showing <strong>{cityBranches.length}</strong> branches in{" "}
-                  <strong>{cityQuery.trim()}</strong>.
-                </>
-              ) : (
-                <>Pick a city to show branches.</>
-              )}
-            </div>
-          )}
-
-          {/* Debug if needed */}
-          {/* <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>{status}</div> */}
-        </div>
+        <CitySearchSection
+          mode={mode}
+          cities={cities}
+          cityQuery={cityQuery}
+          cityBranchesCount={cityBranches.length}
+          onCityQueryChange={setCityQuery}
+          onSearchCity={handleSearchCity}
+        />
 
         {/* Map */}
 
         {/* Map */}
         {shouldShowMap ? (
-          <div
-            className="nbw-map"
-            style={{ flex: "1.1 1 420px", minWidth: "min(100%, 320px)" }}
-          >
+          <div className="nbw-map nbw-map-shell">
             <BranchMap
               centerLat={mapCenter.lat}
               centerLon={mapCenter.lon}
@@ -533,13 +240,7 @@ export default function NearestBranchWidget() {
             />
           </div>
         ) : (
-          <div
-            className="nbw-map nbw-map-placeholder"
-            style={{
-              flex: "1.1 1 420px",
-              minWidth: "min(100%, 320px)",
-            }}
-          />
+          <div className="nbw-map nbw-map-placeholder nbw-map-shell" />
         )}
       </div>
     </div>

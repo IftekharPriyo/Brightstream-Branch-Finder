@@ -8,7 +8,7 @@
 
 .site-footer {
   width: 100%;
-  background: var(--midnight);
+  background: #0a1628;
   color: var(--cream);
   padding: 2.4rem 5% 1.4rem;
 }
@@ -24,7 +24,7 @@
 }
 
 .footer-brand h3 {
-  font-family: 'Playfair Display', serif;
+  font-family: "Playfair Display", serif;
   color: #ffffff;
   font-size: clamp(1.9rem, 1.8vw, 2.4rem);
   line-height: 1.2;
@@ -33,13 +33,13 @@
 .footer-brand p {
   margin-top: 0.8rem;
   max-width: 40ch;
-  font-family: 'Jost', sans-serif;
-  font-size: 1rem;
+  font-family: "Jost", sans-serif;
+  font-size: 0.85rem;
   line-height: 1.65;
 }
 
 .footer-section h4 {
-  font-family: 'Playfair Display', serif;
+  font-family: "Playfair Display", serif;
   color: #ffffff;
   font-size: 1.35rem;
   line-height: 1.2;
@@ -58,8 +58,8 @@
 .social-links a {
   color: var(--cream);
   text-decoration: none;
-  font-family: 'Jost', sans-serif;
-  font-size: 1rem;
+  font-family: "Jost", sans-serif;
+  font-size: 0.8rem;
   transition: color 0.2s ease;
 }
 
@@ -76,7 +76,7 @@
   gap: 1.25rem;
   align-items: center;
   justify-content: space-between;
-  font-family: 'Jost', sans-serif;
+  font-family: "Jost", sans-serif;
   font-size: 0.95rem;
 }
 
@@ -107,5 +107,176 @@
     flex-direction: column;
     align-items: flex-start;
     padding-top: 0.8rem;
+  }
+}
+
+.nbw-root {
+  width: 100%;
+  margin: 0 auto;
+}
+
+.nbw-layout {
+  display: grid;
+  gap: clamp(1rem, 3vw, 1.75rem);
+  align-items: start;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 1.1fr);
+  grid-template-areas:
+    "top map"
+    "city map";
+}
+
+.nbw-top {
+  grid-area: top;
+  min-width: 0;
+}
+
+.nbw-city {
+  grid-area: city;
+  min-width: 0;
+}
+
+.nbw-map {
+  grid-area: map;
+  min-width: 0;
+}
+
+.nbw-map-shell {
+  flex: 1.1 1 420px;
+  min-width: min(100%, 320px);
+}
+
+.nbw-map-placeholder {
+  min-height: 1px;
+}
+
+.nbw-title {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2rem, 8vw, 4rem);
+  font-weight: 700;
+  color: #0a1628;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+  letter-spacing: -1px;
+}
+
+.nbw-intro-text,
+.nbw-city-text {
+  color: #64748b;
+  line-height: 1.8;
+  font-weight: 600;
+  margin-bottom: 18px;
+}
+
+.nbw-intro-text {
+  margin-top: 6px;
+}
+
+.nbw-city-text {
+  margin-top: 30px;
+}
+
+.nbw-action-btn {
+  padding: 12px 16px;
+  border-radius: 20px;
+  background-color: #d4af37;
+  color: #fefdfb;
+  cursor: pointer;
+  font-size: 16px;
+  border: none;
+  height: 46px;
+}
+
+.nbw-action-btn:hover {
+  filter: brightness(0.96);
+}
+
+.nbw-action-btn:focus-visible {
+  outline: 2px solid #0a1628;
+  outline-offset: 2px;
+}
+
+.nbw-top .nbw-action-btn {
+  width: min(100%, 240px);
+}
+
+.nbw-city-btn {
+  width: min(100%, 200px);
+}
+
+.nbw-nearest-wrap {
+  margin-top: 30px;
+  padding: 14px;
+}
+
+.nbw-nearest-label {
+  font-family: "Playfair Display", serif;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #8b9d83;
+  margin: 0;
+}
+
+.nbw-nearest-name {
+  font-family: "Playfair Display", serif;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #0a1628;
+  margin-top: 10px;
+}
+
+.nbw-nearest-meta {
+  color: #64748b;
+  line-height: 1.8;
+  font-weight: 400;
+}
+
+.nbw-map-link {
+  display: inline-block;
+  margin-top: 10px;
+  color: #0a1628;
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.nbw-city-controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  margin-top: 18px;
+}
+
+.nbw-city-controls-nearest {
+  margin-top: 30px;
+}
+
+.nbw-city-select-wrap {
+  width: min(100%, 20rem);
+  flex-grow: 1;
+}
+
+.nbw-city-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.nbw-city-results {
+  margin-top: 18px;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+@media (max-width: 1024px) {
+  .nbw-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "top"
+      "map"
+      "city";
+  }
+
+  .nbw-map-placeholder {
+    display: none;
   }
 }
