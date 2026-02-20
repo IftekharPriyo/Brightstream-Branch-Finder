@@ -1,4 +1,3 @@
-// src/components/BranchMap.tsx
 import { useEffect, useRef } from "react";
 
 export type MapBranch = {
@@ -90,7 +89,7 @@ export default function BranchMap(props: {
         mapRef.current.addLayer(clusterGroupRef.current);
       }
 
-      // ✅ VIEW UPDATE: fitBounds(user+nearest) else flyTo center
+      //  VIEW UPDATE: fitBounds(user+nearest) else flyTo center
       const hasUser =
         typeof userLat === "number" && typeof userLon === "number";
 
@@ -136,7 +135,7 @@ export default function BranchMap(props: {
       if (userLayerRef.current) userLayerRef.current.clearLayers();
       if (clusterGroupRef.current) clusterGroupRef.current.clearLayers();
 
-      // ✅ USER LOCATION — blue dot + soft ring (non-clustered)
+      //  USER LOCATION — blue dot + soft ring (non-clustered)
       if (hasUser) {
         const userCircle = L.circleMarker([userLat!, userLon!], {
           radius: 8,
@@ -162,7 +161,7 @@ export default function BranchMap(props: {
         accuracyRing.addTo(userLayerRef.current);
       }
 
-      // ✅ BRANCH MARKERS (clustered)
+      //  BRANCH MARKERS (clustered)
       for (const b of branches) {
         const isNearest = highlightId && b.id === highlightId;
         const label = isNearest ? `⭐ ${b.name}` : b.name;
