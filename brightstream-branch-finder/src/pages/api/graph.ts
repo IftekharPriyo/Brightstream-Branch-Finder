@@ -10,6 +10,8 @@ const BRANCH_LIST_QUERY = `
         Name
         Coordinates
         Country
+        City
+        Phone
       }
       total
     }

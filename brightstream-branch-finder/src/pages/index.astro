@@ -1,5 +1,8 @@
 ---
-import NearestBranchWidget from "../components/NearestBranchWidget";
+import NearestBranchWidget from "../components/NearestBranchWidget/NearestBranchWidget";
+import Navbar from "../components/Navbar/Navbar";
+import Footer from "../components/Footer/Footer";
+import "../styles/global.css";
 ---
 
 <html lang="en">
@@ -22,9 +25,15 @@ import NearestBranchWidget from "../components/NearestBranchWidget";
 	/>
 
   </head>
-
-  <body style="padding: 24px; font-family: system-ui, sans-serif;">
-    <h1>Nearest Branch Finder</h1>
-    <NearestBranchWidget client:load />
+  <body
+    style="margin: 0; min-height: 100dvh; display: flex; flex-direction: column; font-family: system-ui, sans-serif; background-color: #03173a; background-image: url('/mapbg.png'); background-position: center; background-repeat: no-repeat; background-size: cover;"
+  >
+    <Navbar client:load />
+    <main
+      style="flex: 1 0 auto; width: min(1400px, 90%); margin: 0 auto; padding: clamp(10rem, 15vw, 12rem) 0 3rem; min-height: clamp(780px, 80vh, 1080px);"
+    >
+      <NearestBranchWidget client:load />
+    </main>
+    <Footer />
   </body>
 </html>
