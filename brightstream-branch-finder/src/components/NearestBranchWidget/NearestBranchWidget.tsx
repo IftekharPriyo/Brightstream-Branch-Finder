@@ -85,7 +85,7 @@ export default function NearestBranchWidget() {
     return parsedBranches.find((b) => b.id === nearestId) ?? null;
   }, [nearestId, parsedBranches]);
 
-  // City-mode filtered branches (Mode A)
+  // City-mode filtered branches
   const cityBranches = useMemo(() => {
     if (!parsedBranches.length) return [];
     const wanted = norm(cityQuery);
@@ -199,7 +199,6 @@ export default function NearestBranchWidget() {
         <div className="nbw-top">
           <h1 className="nbw-title ease-up">Brighstream Branch Finder</h1>
 
-          {/* Intro */}
           {!(
             mode === "nearest" &&
             nearestBranch &&
@@ -222,8 +221,6 @@ export default function NearestBranchWidget() {
           onCityQueryChange={setCityQuery}
           onSearchCity={handleSearchCity}
         />
-
-        {/* Map */}
 
         {/* Map */}
         {shouldShowMap ? (
