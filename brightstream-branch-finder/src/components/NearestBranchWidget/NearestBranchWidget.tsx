@@ -198,7 +198,7 @@ export default function NearestBranchWidget() {
     <div className="nbw-root">
       <div className="nbw-layout">
         <div className="nbw-top">
-          <h1 className="nbw-title">Brighstream Branch Finder</h1>
+          <h1 className="nbw-title ease-up">Brighstream Branch Finder</h1>
 
           {/* Intro */}
           {!(

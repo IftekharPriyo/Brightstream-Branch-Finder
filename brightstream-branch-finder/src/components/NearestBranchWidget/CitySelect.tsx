@@ -26,6 +26,7 @@ export default function CitySelect(props: {
     >
       <div style={{ position: "relative" }}>
         <Combobox.Input
+          className="ease-up"
           value={value}
           onChange={(e) => {
             setQuery(e.target.value);

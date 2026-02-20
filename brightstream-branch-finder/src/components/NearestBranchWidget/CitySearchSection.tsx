@@ -22,7 +22,7 @@ export default function CitySearchSection(props: CitySearchSectionProps) {
   return (
     <div className="nbw-city">
       {/* City dropdown + Button 2 */}
-      <p className="nbw-city-text">Or search branches by city.</p>
+      <p className="nbw-city-text ease-up">Or search branches by city.</p>
       <div
         className={
           mode === "nearest"
@@ -38,21 +38,21 @@ export default function CitySearchSection(props: CitySearchSectionProps) {
             placeholder="Search by city"
             disabled={cities.length === 0}
           />
-          <div className="nbw-city-hint">
+          <div className="nbw-city-hint ease-up">
             {cities.length > 0
               ? `Suggestions loaded (${cities.length})`
               : "Loading city suggestions..."}
           </div>
         </div>
 
-        <button onClick={onSearchCity} className="nbw-action-btn nbw-city-btn">
+        <button onClick={onSearchCity} className="nbw-action-btn nbw-city-btn ease-up">
           Search City
         </button>
       </div>
 
       {/* Results */}
       {mode === "city" && (
-        <div className="nbw-city-results">
+        <div className="nbw-city-results ease-up">
           {cityQuery.trim() ? (
             <>
               Showing <strong>{cityBranchesCount}</strong> branches in{" "}

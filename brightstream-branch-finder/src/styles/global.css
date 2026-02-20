@@ -26,6 +26,30 @@ body {
   line-height: 1.6;
 }
 
+@keyframes easeUp {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.ease-up {
+  animation: easeUp 0.55s ease-out both;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ease-up {
+    animation: none;
+    transform: none;
+    opacity: 1;
+  }
+}
+
 @keyframes slideDown {
   from {
     transform: translateY(-100%);
@@ -59,11 +83,11 @@ body {
   width: 100%;
   background: #0a1628;
   color: var(--cream);
-  padding: 2.4rem 5% 1.4rem;
+  padding: 3rem 5% 1.4rem;
 }
 
 .footer-content {
-  max-width: 1280px;
+  max-width: 1400px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, 1fr));
@@ -83,8 +107,9 @@ body {
   margin-top: 0.8rem;
   max-width: 40ch;
   font-family: "Jost", sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   line-height: 1.65;
+  color: var(--slate);
 }
 
 .footer-section h4 {
@@ -105,10 +130,10 @@ body {
 
 .footer-links a,
 .social-links a {
-  color: var(--cream);
+  color: var(--slate);
   text-decoration: none;
   font-family: "Jost", sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   transition: color 0.2s ease;
 }
 
@@ -127,6 +152,7 @@ body {
   justify-content: space-between;
   font-family: "Jost", sans-serif;
   font-size: 0.95rem;
+  color: var(--slate);
 }
 
 .social-links {
