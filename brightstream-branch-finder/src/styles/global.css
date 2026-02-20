@@ -294,8 +294,8 @@ body {
 .nbw-nearest-label {
   font-family: "Playfair Display", serif;
   font-size: 1.8rem;
-  font-weight: 600;
-  color: #8b9d83;
+  font-weight: 500;
+  color: var(--gold);
   margin: 0;
 }
 
@@ -304,7 +304,7 @@ body {
   font-size: 2rem;
   font-weight: 600;
   color: #0a1628;
-  margin-top: 10px;
+  margin-top: 15px;
 }
 
 .nbw-nearest-meta {
@@ -315,11 +315,12 @@ body {
 }
 
 .nbw-map-link {
+  font-family: "Jost", serif;
   display: inline-block;
-  margin-top: 10px;
+  /* margin-top: 10px; */
   color: #0a1628;
-  text-decoration: underline;
-  font-weight: 600;
+  /* text-decoration: underline; */
+  font-weight: 500;
 }
 
 .nbw-city-controls {

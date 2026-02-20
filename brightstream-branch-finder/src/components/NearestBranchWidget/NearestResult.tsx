@@ -38,7 +38,7 @@ export default function NearestResult(props: NearestResultProps) {
         rel="noreferrer"
         className="nbw-map-link ease-up"
       >
-        Get Directions in Google Maps
+        Get Directions in Google Maps →
       </a>
     </div>
   );
