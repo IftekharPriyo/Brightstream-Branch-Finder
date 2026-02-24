@@ -4,6 +4,7 @@ import CitySearchSection from "./CitySearchSection";
 import IntroSection from "./IntroSection";
 
 import {
+  fetchDisplayAddress,
   fetchBranchesCached,
   getUserLocation,
   haversineKm,
@@ -24,6 +25,8 @@ export default function NearestBranchWidget() {
   // Nearest (GPS) state
   const [nearestId, setNearestId] = useState<string | null>(null);
   const [nearestDistance, setNearestDistance] = useState<number | null>(null);
+  const [nearestAddress, setNearestAddress] = useState<string | null>(null);
+  const [isNearestAddressLoading, setIsNearestAddressLoading] = useState(false);
 
   // City search state
   const [cityQuery, setCityQuery] = useState("");
@@ -87,6 +90,40 @@ export default function NearestBranchWidget() {
     return parsedBranches.find((b) => b.id === nearestId) ?? null;
   }, [nearestId, parsedBranches]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (mode !== "nearest" || !nearestBranch) {
+      setNearestAddress(null);
+      setIsNearestAddressLoading(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        setIsNearestAddressLoading(true);
+        const result = await fetchDisplayAddress(
+          nearestBranch.lat,
+          nearestBranch.lon,
+        );
+        if (cancelled) return;
+        setNearestAddress(result.displayName);
+      } catch (error) {
+        if (cancelled) return;
+        setNearestAddress(null);
+        console.error("Reverse geocoding failed:", error);
+      } finally {
+        if (!cancelled) {
+          setIsNearestAddressLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, nearestBranch]);
+
   // City-mode filtered branches
   const cityBranches = useMemo(() => {
     if (!parsedBranches.length) return [];
@@ -138,6 +175,8 @@ export default function NearestBranchWidget() {
       setMode("nearest");
       setNearestId(null);
       setNearestDistance(null);
+      setNearestAddress(null);
+      setIsNearestAddressLoading(false);
 
       const loc = await getUserLocation();
       setUserLoc(loc);
@@ -182,6 +221,8 @@ export default function NearestBranchWidget() {
       setUserLoc(null); // no GPS marker in city mode
       setNearestId(null);
       setNearestDistance(null);
+      setNearestAddress(null);
+      setIsNearestAddressLoading(false);
 
       const items = branches ?? (await fetchBranchesCached());
       setBranches(items);
@@ -242,10 +283,15 @@ export default function NearestBranchWidget() {
             </p>
           )}
 
-          {mode === "nearest" && nearestBranch && nearestDistance != null && (
+          {mode === "nearest" &&
+            nearestBranch &&
+            nearestDistance != null &&
+            !isNearestAddressLoading &&
+            nearestAddress && (
             <NearestResult
               nearestBranch={nearestBranch}
               nearestDistance={nearestDistance}
+              nearestAddress={nearestAddress}
             />
           )}
         </div>

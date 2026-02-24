@@ -9,6 +9,7 @@ export type Branch = {
 };
 
 export type UserLoc = { lat: number; lon: number };
+export type ReverseGeocodeResult = { displayName: string | null };
 
 export function parseCoordinates(
   value?: string | null,
@@ -85,6 +86,27 @@ export async function fetchBranchesCached(): Promise<Branch[]> {
     JSON.stringify({ ts: Date.now(), items }),
   );
   return items;
+}
+
+export async function fetchDisplayAddress(
+  lat: number,
+  lon: number,
+): Promise<ReverseGeocodeResult> {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+  });
+
+  const res = await fetch(`/api/reverse-geocode?${params.toString()}`, {
+    method: "GET",
+  });
+
+  if (!res.ok) {
+    throw new Error("Reverse geocoding failed");
+  }
+
+  const json = (await res.json()) as { displayName?: string | null };
+  return { displayName: json.displayName ?? null };
 }
 
 export function norm(s: unknown) {
