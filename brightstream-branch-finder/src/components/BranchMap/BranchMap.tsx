@@ -34,10 +34,12 @@ export default function BranchMap(props: {
 
   // Separate layers: one for user marker, one clustered for branches
   const userLayerRef = useRef<any>(null);
+  const routeLayerRef = useRef<any>(null);
   const clusterGroupRef = useRef<any>(null);
 
   const lastViewKeyRef = useRef<string>("");
   const reverseAddressCacheRef = useRef<Map<string, string | null>>(new Map());
+  const routeCacheRef = useRef<Map<string, Array<[number, number]>>>(new Map());
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -78,6 +80,7 @@ export default function BranchMap(props: {
 
         // User layer (non-clustered)
         userLayerRef.current = L.layerGroup().addTo(mapRef.current);
+        routeLayerRef.current = L.layerGroup().addTo(mapRef.current);
 
         // Cluster group for branches
         clusterGroupRef.current = (L as any).markerClusterGroup({
@@ -133,6 +136,7 @@ export default function BranchMap(props: {
 
       // Clear existing layers
       if (userLayerRef.current) userLayerRef.current.clearLayers();
+      if (routeLayerRef.current) routeLayerRef.current.clearLayers();
       if (clusterGroupRef.current) clusterGroupRef.current.clearLayers();
 
       // User location marker
@@ -159,6 +163,39 @@ export default function BranchMap(props: {
         accuracyRing.addTo(userLayerRef.current);
       }
 
+      if (hasUser && nearestBranch && routeLayerRef.current) {
+        const routeKey = `${userLat},${userLon}:${nearestBranch.lat},${nearestBranch.lon}`;
+        const cachedRoute = routeCacheRef.current.get(routeKey);
+
+        if (cachedRoute) {
+          L.polyline(cachedRoute, {
+            color: "#0a1628",
+            weight: 5,
+            opacity: 0.9,
+          }).addTo(routeLayerRef.current);
+        } else {
+          try {
+            const routeCoords = await fetchRouteLatLngs(
+              userLat!,
+              userLon!,
+              nearestBranch.lat,
+              nearestBranch.lon,
+            );
+
+            if (isCancelled || !routeLayerRef.current) return;
+
+            routeCacheRef.current.set(routeKey, routeCoords);
+            L.polyline(routeCoords, {
+              color: "#0a1628",
+              weight: 5,
+              opacity: 0.9,
+            }).addTo(routeLayerRef.current);
+          } catch {
+            // Keep map functional even when routing provider is unavailable.
+          }
+        }
+      }
+
       const nearestBranchIcon = L.icon({
         iconUrl: buildPinDataUrl("#d4af37", "#0a1628"),
         iconRetinaUrl: buildPinDataUrl("#d4af37", "#0a1628"),
@@ -173,7 +210,7 @@ export default function BranchMap(props: {
       // Branch markers (clustered)
       for (const b of branches) {
         const isNearest = highlightId && b.id === highlightId;
-        const label = isNearest ? `⭐ ${b.name}` : b.name;
+        const label = isNearest ? `Nearest: ${b.name}` : b.name;
 
         const marker = isNearest
           ? L.marker([b.lat, b.lon], { icon: nearestBranchIcon })
@@ -237,6 +274,7 @@ export default function BranchMap(props: {
         mapRef.current.remove();
         mapRef.current = null;
         userLayerRef.current = null;
+        routeLayerRef.current = null;
         clusterGroupRef.current = null;
       }
     };
@@ -306,6 +344,35 @@ function buildBranchPopupHtml({
           </div>`;
 }
 
+async function fetchRouteLatLngs(
+  startLat: number,
+  startLon: number,
+  endLat: number,
+  endLon: number,
+): Promise<Array<[number, number]>> {
+  const url =
+    `https://router.project-osrm.org/route/v1/driving/` +
+    `${encodeURIComponent(String(startLon))},${encodeURIComponent(String(startLat))};` +
+    `${encodeURIComponent(String(endLon))},${encodeURIComponent(String(endLat))}` +
+    `?overview=full&geometries=geojson`;
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error("Route request failed");
+  }
+
+  const json = (await res.json()) as {
+    routes?: Array<{ geometry?: { coordinates?: Array<[number, number]> } }>;
+  };
+
+  const coords = json.routes?.[0]?.geometry?.coordinates;
+  if (!coords || coords.length === 0) {
+    throw new Error("No route geometry");
+  }
+
+  return coords.map(([lon, lat]) => [lat, lon]);
+}
+
 function buildPinDataUrl(fillColor: string, strokeColor: string) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 41">
     <path d="M12.5 0C6.15 0 1 5.15 1 11.5c0 8.24 11.5 29.5 11.5 29.5S24 19.74 24 11.5C24 5.15 18.85 0 12.5 0z"
@@ -314,3 +381,4 @@ function buildPinDataUrl(fillColor: string, strokeColor: string) {
   </svg>`;
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
+
