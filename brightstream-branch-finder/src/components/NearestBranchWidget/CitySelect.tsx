@@ -14,8 +14,8 @@ export default function CitySelect(props: {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const base = cities;
-    if (!q) return base.slice(0, 60);
-    return base.filter((c) => c.toLowerCase().includes(q)).slice(0, 60);
+    if (!q) return base;
+    return base.filter((c) => c.toLowerCase().includes(q));
   }, [cities, query]);
 
   return (
@@ -87,3 +87,4 @@ export default function CitySelect(props: {
     </Combobox>
   );
 }
+

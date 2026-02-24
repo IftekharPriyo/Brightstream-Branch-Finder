@@ -18,6 +18,8 @@ import NearestResult from "./NearestResult";
 export default function NearestBranchWidget() {
   const [userLoc, setUserLoc] = useState<UserLoc | null>(null);
   const [branches, setBranches] = useState<Branch[] | null>(null);
+  const [isFindingNearest, setIsFindingNearest] = useState(false);
+  const [locationPrompt, setLocationPrompt] = useState<string | null>(null);
 
   // Nearest (GPS) state
   const [nearestId, setNearestId] = useState<string | null>(null);
@@ -111,8 +113,28 @@ export default function NearestBranchWidget() {
   const getErrorMessage = (error: unknown) =>
     error instanceof Error ? error.message : "Unknown error";
 
+  const getLocationPrompt = (error: unknown): string | null => {
+    if (typeof navigator !== "undefined" && !navigator.geolocation) {
+      return "Location is unavailable on this device. Turn on location services to find your nearest branch.";
+    }
+
+    if (typeof error === "object" && error !== null && "code" in error) {
+      const code = (error as { code?: number }).code;
+      if (code === 1) {
+        return "Location access is turned off. Turn on location permissions and try again.";
+      }
+      if (code === 2) {
+        return "Location is currently unavailable. Turn on location services and try again.";
+      }
+    }
+    return null;
+  };
+
   const handleFindNearest = async () => {
+    if (isFindingNearest) return;
     try {
+      setIsFindingNearest(true);
+      setLocationPrompt(null);
       setMode("nearest");
       setNearestId(null);
       setNearestDistance(null);
@@ -145,13 +167,17 @@ export default function NearestBranchWidget() {
       setNearestId(bestId);
       setNearestDistance(bestD);
     } catch (error: unknown) {
+      setLocationPrompt(getLocationPrompt(error));
       console.error(`Find nearest failed: ${getErrorMessage(error)}`);
+    } finally {
+      setIsFindingNearest(false);
     }
   };
 
   // show all branches in selected city on the map
   const handleSearchCity = async () => {
     try {
+      setLocationPrompt(null);
       setMode("city");
       setUserLoc(null); // no GPS marker in city mode
       setNearestId(null);
@@ -203,7 +229,18 @@ export default function NearestBranchWidget() {
             mode === "nearest" &&
             nearestBranch &&
             nearestDistance != null
-          ) && <IntroSection onFindNearest={handleFindNearest} />}
+          ) && (
+            <IntroSection
+              onFindNearest={handleFindNearest}
+              isLoading={isFindingNearest}
+            />
+          )}
+
+          {mode === "nearest" && locationPrompt && (
+            <p className="nbw-location-alert ease-up" role="alert">
+              {locationPrompt}
+            </p>
+          )}
 
           {mode === "nearest" && nearestBranch && nearestDistance != null && (
             <NearestResult
