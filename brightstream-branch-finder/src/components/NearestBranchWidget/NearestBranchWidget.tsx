@@ -33,6 +33,15 @@ export default function NearestBranchWidget() {
   const [cities, setCities] = useState<string[]>([]);
   const [mode, setMode] = useState<"idle" | "nearest" | "city">("idle");
 
+  const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Unknown error";
+
+  const alertClientFailure = (message: string) => {
+    if (typeof window !== "undefined") {
+      window.alert(message);
+    }
+  };
+
   // Prefetch branches once so cities dropdown is populated on load
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +60,9 @@ export default function NearestBranchWidget() {
         setCities(Array.from(m.values()).sort((a, b) => a.localeCompare(b)));
       } catch (e) {
         console.error("Prefetch failed:", e);
+        alertClientFailure(
+          `Could not load branch data right now. ${getErrorMessage(e)}`,
+        );
       }
     })();
     return () => {
@@ -147,9 +159,6 @@ export default function NearestBranchWidget() {
     };
   }, [cityBranches]);
 
-  const getErrorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : "Unknown error";
-
   const getLocationPrompt = (error: unknown): string | null => {
     if (typeof navigator !== "undefined" && !navigator.geolocation) {
       return "Location is unavailable on this device. Turn on location services to find your nearest branch.";
@@ -206,7 +215,13 @@ export default function NearestBranchWidget() {
       setNearestId(bestId);
       setNearestDistance(bestD);
     } catch (error: unknown) {
-      setLocationPrompt(getLocationPrompt(error));
+      const prompt = getLocationPrompt(error);
+      setLocationPrompt(prompt);
+      if (!prompt) {
+        alertClientFailure(
+          `Unable to find nearest branch right now. ${getErrorMessage(error)}`,
+        );
+      }
       console.error(`Find nearest failed: ${getErrorMessage(error)}`);
     } finally {
       setIsFindingNearest(false);
@@ -239,6 +254,9 @@ export default function NearestBranchWidget() {
         return;
       }
     } catch (error: unknown) {
+      alertClientFailure(
+        `Unable to search branches right now. ${getErrorMessage(error)}`,
+      );
       console.error(`City search failed: ${getErrorMessage(error)}`);
     }
   };

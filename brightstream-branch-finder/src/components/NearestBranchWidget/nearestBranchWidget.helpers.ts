@@ -57,9 +57,13 @@ const BRANCH_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
 
 export async function fetchBranchesCached(): Promise<Branch[]> {
   const raw = localStorage.getItem(BRANCH_CACHE_KEY);
+  let staleCachedItems: Branch[] | null = null;
   if (raw) {
     try {
       const cached = JSON.parse(raw) as { ts: number; items: Branch[] };
+      if (Array.isArray(cached.items)) {
+        staleCachedItems = cached.items;
+      }
       if (
         Date.now() - cached.ts < BRANCH_CACHE_TTL_MS &&
         Array.isArray(cached.items)
@@ -69,23 +73,39 @@ export async function fetchBranchesCached(): Promise<Branch[]> {
     } catch { }
   }
 
-  const res = await fetch("/api/graph", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ limit: 100, skip: 0 }),
-  });
+  try {
+    const res = await fetch("/api/graph", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ limit: 100, skip: 0 }),
+    });
 
-  const json = await res.json();
-  if (json.errors?.length) {
-    throw new Error(json.errors[0].message ?? "GraphQL error");
+    const json = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        json?.error ??
+        json?.errors?.[0]?.message ??
+        `Branch API request failed (${res.status})`,
+      );
+    }
+
+    if (json.errors?.length) {
+      throw new Error(json.errors[0].message ?? "GraphQL error");
+    }
+
+    const items: Branch[] = json?.data?.Branch?.items ?? [];
+    localStorage.setItem(
+      BRANCH_CACHE_KEY,
+      JSON.stringify({ ts: Date.now(), items }),
+    );
+    return items;
+  } catch (error) {
+    if (staleCachedItems) {
+      return staleCachedItems;
+    }
+    throw error;
   }
-
-  const items: Branch[] = json?.data?.Branch?.items ?? [];
-  localStorage.setItem(
-    BRANCH_CACHE_KEY,
-    JSON.stringify({ ts: Date.now(), items }),
-  );
-  return items;
 }
 
 export async function fetchDisplayAddress(
