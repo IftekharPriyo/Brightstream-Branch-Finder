@@ -4,6 +4,7 @@ import CitySearchSection from "./CitySearchSection";
 import IntroSection from "./IntroSection";
 
 import {
+  fetchDisplayAddress,
   fetchBranchesCached,
   getUserLocation,
   haversineKm,
@@ -18,15 +19,28 @@ import NearestResult from "./NearestResult";
 export default function NearestBranchWidget() {
   const [userLoc, setUserLoc] = useState<UserLoc | null>(null);
   const [branches, setBranches] = useState<Branch[] | null>(null);
+  const [isFindingNearest, setIsFindingNearest] = useState(false);
+  const [locationPrompt, setLocationPrompt] = useState<string | null>(null);
 
   // Nearest (GPS) state
   const [nearestId, setNearestId] = useState<string | null>(null);
   const [nearestDistance, setNearestDistance] = useState<number | null>(null);
+  const [nearestAddress, setNearestAddress] = useState<string | null>(null);
+  const [isNearestAddressLoading, setIsNearestAddressLoading] = useState(false);
 
   // City search state
   const [cityQuery, setCityQuery] = useState("");
   const [cities, setCities] = useState<string[]>([]);
   const [mode, setMode] = useState<"idle" | "nearest" | "city">("idle");
+
+  const getErrorMessage = (error: unknown) =>
+    error instanceof Error ? error.message : "Unknown error";
+
+  const alertClientFailure = (message: string) => {
+    if (typeof window !== "undefined") {
+      window.alert(message);
+    }
+  };
 
   // Prefetch branches once so cities dropdown is populated on load
   useEffect(() => {
@@ -46,6 +60,9 @@ export default function NearestBranchWidget() {
         setCities(Array.from(m.values()).sort((a, b) => a.localeCompare(b)));
       } catch (e) {
         console.error("Prefetch failed:", e);
+        alertClientFailure(
+          `Could not load branch data right now. ${getErrorMessage(e)}`,
+        );
       }
     })();
     return () => {
@@ -85,6 +102,40 @@ export default function NearestBranchWidget() {
     return parsedBranches.find((b) => b.id === nearestId) ?? null;
   }, [nearestId, parsedBranches]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (mode !== "nearest" || !nearestBranch) {
+      setNearestAddress(null);
+      setIsNearestAddressLoading(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        setIsNearestAddressLoading(true);
+        const result = await fetchDisplayAddress(
+          nearestBranch.lat,
+          nearestBranch.lon,
+        );
+        if (cancelled) return;
+        setNearestAddress(result.displayName);
+      } catch (error) {
+        if (cancelled) return;
+        setNearestAddress(null);
+        console.error("Reverse geocoding failed:", error);
+      } finally {
+        if (!cancelled) {
+          setIsNearestAddressLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, nearestBranch]);
+
   // City-mode filtered branches
   const cityBranches = useMemo(() => {
     if (!parsedBranches.length) return [];
@@ -108,14 +159,33 @@ export default function NearestBranchWidget() {
     };
   }, [cityBranches]);
 
-  const getErrorMessage = (error: unknown) =>
-    error instanceof Error ? error.message : "Unknown error";
+  const getLocationPrompt = (error: unknown): string | null => {
+    if (typeof navigator !== "undefined" && !navigator.geolocation) {
+      return "Location is unavailable on this device. Turn on location services to find your nearest branch.";
+    }
+
+    if (typeof error === "object" && error !== null && "code" in error) {
+      const code = (error as { code?: number }).code;
+      if (code === 1) {
+        return "Location access is turned off. Turn on location permissions and try again.";
+      }
+      if (code === 2) {
+        return "Location is currently unavailable. Turn on location services and try again.";
+      }
+    }
+    return null;
+  };
 
   const handleFindNearest = async () => {
+    if (isFindingNearest) return;
     try {
+      setIsFindingNearest(true);
+      setLocationPrompt(null);
       setMode("nearest");
       setNearestId(null);
       setNearestDistance(null);
+      setNearestAddress(null);
+      setIsNearestAddressLoading(false);
 
       const loc = await getUserLocation();
       setUserLoc(loc);
@@ -145,17 +215,29 @@ export default function NearestBranchWidget() {
       setNearestId(bestId);
       setNearestDistance(bestD);
     } catch (error: unknown) {
+      const prompt = getLocationPrompt(error);
+      setLocationPrompt(prompt);
+      if (!prompt) {
+        alertClientFailure(
+          `Unable to find nearest branch right now. ${getErrorMessage(error)}`,
+        );
+      }
       console.error(`Find nearest failed: ${getErrorMessage(error)}`);
+    } finally {
+      setIsFindingNearest(false);
     }
   };
 
   // show all branches in selected city on the map
   const handleSearchCity = async () => {
     try {
+      setLocationPrompt(null);
       setMode("city");
       setUserLoc(null); // no GPS marker in city mode
       setNearestId(null);
       setNearestDistance(null);
+      setNearestAddress(null);
+      setIsNearestAddressLoading(false);
 
       const items = branches ?? (await fetchBranchesCached());
       setBranches(items);
@@ -172,6 +254,9 @@ export default function NearestBranchWidget() {
         return;
       }
     } catch (error: unknown) {
+      alertClientFailure(
+        `Unable to search branches right now. ${getErrorMessage(error)}`,
+      );
       console.error(`City search failed: ${getErrorMessage(error)}`);
     }
   };
@@ -203,12 +288,28 @@ export default function NearestBranchWidget() {
             mode === "nearest" &&
             nearestBranch &&
             nearestDistance != null
-          ) && <IntroSection onFindNearest={handleFindNearest} />}
+          ) && (
+            <IntroSection
+              onFindNearest={handleFindNearest}
+              isLoading={isFindingNearest}
+            />
+          )}
 
-          {mode === "nearest" && nearestBranch && nearestDistance != null && (
+          {mode === "nearest" && locationPrompt && (
+            <p className="nbw-location-alert ease-up" role="alert">
+              {locationPrompt}
+            </p>
+          )}
+
+          {mode === "nearest" &&
+            nearestBranch &&
+            nearestDistance != null &&
+            !isNearestAddressLoading &&
+            nearestAddress && (
             <NearestResult
               nearestBranch={nearestBranch}
               nearestDistance={nearestDistance}
+              nearestAddress={nearestAddress}
             />
           )}
         </div>

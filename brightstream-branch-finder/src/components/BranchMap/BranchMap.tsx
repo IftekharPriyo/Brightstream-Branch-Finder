@@ -1,4 +1,9 @@
 import { useEffect, useRef } from "react";
+import {
+  buildBranchPopupHtml,
+  buildPinDataUrl,
+  fetchRouteLatLngs,
+} from "./BranchMap.helpers";
 
 export type MapBranch = {
   id: string;
@@ -34,9 +39,12 @@ export default function BranchMap(props: {
 
   // Separate layers: one for user marker, one clustered for branches
   const userLayerRef = useRef<any>(null);
+  const routeLayerRef = useRef<any>(null);
   const clusterGroupRef = useRef<any>(null);
 
   const lastViewKeyRef = useRef<string>("");
+  const reverseAddressCacheRef = useRef<Map<string, string | null>>(new Map());
+  const routeCacheRef = useRef<Map<string, Array<[number, number]>>>(new Map());
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,6 +85,7 @@ export default function BranchMap(props: {
 
         // User layer (non-clustered)
         userLayerRef.current = L.layerGroup().addTo(mapRef.current);
+        routeLayerRef.current = L.layerGroup().addTo(mapRef.current);
 
         // Cluster group for branches
         clusterGroupRef.current = (L as any).markerClusterGroup({
@@ -88,7 +97,7 @@ export default function BranchMap(props: {
         mapRef.current.addLayer(clusterGroupRef.current);
       }
 
-      //  VIEW UPDATE: fitBounds(user+nearest) else flyTo center
+      // View update: fitBounds(user+nearest) else flyTo center
       const hasUser =
         typeof userLat === "number" && typeof userLon === "number";
 
@@ -132,9 +141,10 @@ export default function BranchMap(props: {
 
       // Clear existing layers
       if (userLayerRef.current) userLayerRef.current.clearLayers();
+      if (routeLayerRef.current) routeLayerRef.current.clearLayers();
       if (clusterGroupRef.current) clusterGroupRef.current.clearLayers();
 
-      //  USER LOCATION — blue dot + soft ring (non-clustered)
+      // User location marker
       if (hasUser) {
         const userCircle = L.circleMarker([userLat!, userLon!], {
           radius: 8,
@@ -144,13 +154,11 @@ export default function BranchMap(props: {
           weight: 2,
         });
 
-        userCircle.bindPopup(
-          `<div style="font-weight:700">📍 You are here</div>`,
-        );
+        userCircle.bindPopup(`<div style="font-weight:700">You are here</div>`);
         userCircle.addTo(userLayerRef.current);
 
         const accuracyRing = L.circle([userLat!, userLon!], {
-          radius: 500, // meters (visual)
+          radius: 500,
           color: "#3b82f6",
           fillColor: "#93c5fd",
           fillOpacity: 0.15,
@@ -160,25 +168,97 @@ export default function BranchMap(props: {
         accuracyRing.addTo(userLayerRef.current);
       }
 
-      //  BRANCH MARKERS (clustered)
+      const nearestBranchIcon = L.icon({
+        iconUrl: buildPinDataUrl("#d4af37", "#0a1628"),
+        iconRetinaUrl: buildPinDataUrl("#d4af37", "#0a1628"),
+        shadowUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        iconSize: [25, 41],
+        iconAnchor: [12, 41],
+        popupAnchor: [1, -34],
+        shadowSize: [41, 41],
+      });
+
+      // Branch markers (clustered)
       for (const b of branches) {
         const isNearest = highlightId && b.id === highlightId;
-        const label = isNearest ? `⭐ ${b.name}` : b.name;
+        const label = isNearest ? `Nearest: ${b.name}` : b.name;
 
-        const marker = L.marker([b.lat, b.lon]);
-        marker.bindPopup(
-          `<div style="font-weight:700">${escapeHtml(label)}</div>
-          <p style="color: #64748b; font-weight: 400;">
-                ${b.city}, ${b.country}
-              </p>
-            <p style="color: #64748b; font-weight: 400;">Call us at ${b.phone}</p>
-           <div style="font-size:12px;opacity:.8;margin-top:10px;">
-             <a href="https://www.google.com/maps/dir/?api=1&destination=${b.lat},${b.lon}" target="_blank" rel="noreferrer">Get Directions</a>
-           </div>
-           `,
-        );
+        const marker = isNearest
+          ? L.marker([b.lat, b.lon], { icon: nearestBranchIcon })
+          : L.marker([b.lat, b.lon]);
+        marker.bindPopup(buildBranchPopupHtml({ b, label, address: null }));
+
+        marker.on("popupopen", async () => {
+          const cacheKey = `${b.lat},${b.lon}`;
+          const cachedAddress = reverseAddressCacheRef.current.get(cacheKey);
+
+          if (cachedAddress !== undefined) {
+            marker.setPopupContent(
+              buildBranchPopupHtml({ b, label, address: cachedAddress }),
+            );
+            return;
+          }
+
+          marker.setPopupContent(
+            buildBranchPopupHtml({ b, label, address: null, isLoading: true }),
+          );
+
+          try {
+            const params = new URLSearchParams({
+              lat: String(b.lat),
+              lon: String(b.lon),
+            });
+            const res = await fetch(
+              `/api/reverse-geocode?${params.toString()}`,
+            );
+            if (!res.ok) throw new Error("Reverse geocoding failed");
+
+            const json = (await res.json()) as { displayName?: string | null };
+            const address =
+              typeof json.displayName === "string" && json.displayName.trim()
+                ? json.displayName
+                : null;
+
+            reverseAddressCacheRef.current.set(cacheKey, address);
+            marker.setPopupContent(buildBranchPopupHtml({ b, label, address }));
+          } catch {
+            reverseAddressCacheRef.current.set(cacheKey, null);
+            marker.setPopupContent(
+              buildBranchPopupHtml({ b, label, address: null }),
+            );
+          }
+        });
 
         marker.addTo(clusterGroupRef.current);
+      }
+
+      // Draw route asynchronously so branch markers appear immediately.
+      if (hasUser && nearestBranch && routeLayerRef.current) {
+        const routeKey = `${userLat},${userLon}:${nearestBranch.lat},${nearestBranch.lon}`;
+        const cachedRoute = routeCacheRef.current.get(routeKey);
+
+        if (cachedRoute) {
+          L.polyline(cachedRoute, {
+            color: "#0a1628",
+            weight: 5,
+            opacity: 0.9,
+          }).addTo(routeLayerRef.current);
+        } else {
+          fetchRouteLatLngs(userLat!, userLon!, nearestBranch.lat, nearestBranch.lon)
+            .then((routeCoords) => {
+              if (isCancelled || !routeLayerRef.current) return;
+              routeCacheRef.current.set(routeKey, routeCoords);
+              L.polyline(routeCoords, {
+                color: "#0a1628",
+                weight: 5,
+                opacity: 0.9,
+              }).addTo(routeLayerRef.current);
+            })
+            .catch(() => {
+              // Keep map functional even when routing provider is unavailable.
+            });
+        }
       }
     })();
 
@@ -194,6 +274,7 @@ export default function BranchMap(props: {
         mapRef.current.remove();
         mapRef.current = null;
         userLayerRef.current = null;
+        routeLayerRef.current = null;
         clusterGroupRef.current = null;
       }
     };
@@ -225,11 +306,4 @@ export default function BranchMap(props: {
   );
 }
 
-function escapeHtml(s: string) {
-  return s
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+

@@ -10,10 +10,11 @@ export type WidgetBranch = MapBranch & {
 type NearestResultProps = {
   nearestBranch: WidgetBranch;
   nearestDistance: number;
+  nearestAddress?: string | null;
 };
 
 export default function NearestResult(props: NearestResultProps) {
-  const { nearestBranch, nearestDistance } = props;
+  const { nearestBranch, nearestDistance, nearestAddress } = props;
 
   return (
     <div className="nbw-nearest-wrap">
@@ -21,8 +22,11 @@ export default function NearestResult(props: NearestResultProps) {
 
       <h3 className="nbw-nearest-name ease-up">{nearestBranch.name}</h3>
 
+      {nearestAddress && (
+        <p className="nbw-nearest-meta ease-up">{nearestAddress}</p>
+      )}
+
       <p className="nbw-nearest-meta ease-up">
-        {nearestBranch.city}, {nearestBranch.country} -{" "}
         {nearestDistance.toFixed(2)} km away
       </p>
 
